@@ -78,6 +78,11 @@ export default class extends Vue {
     return this.instance.historyPeriods;
   }
 
+  /** 历史周期消费总和 */
+  get historyPeriodsCostSum(): number {
+    return this.instance.historyPeriodsCostSum;
+  }
+
   /** 当前周期信息 */
   get currentPeriod(): CostPeriod | null {
     return this.instance.currentPeriod;

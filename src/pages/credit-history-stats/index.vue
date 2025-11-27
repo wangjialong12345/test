@@ -62,7 +62,14 @@
           <div class="stat-label">累计消费总和</div>
           <div class="stat-value accumulated">{{ formatCost(accumulatedCostSum) }}</div>
           <div class="stat-hint">
-            限额: ${{ currentLimit }} | 已用: {{ usagePercentage.toFixed(1) }}%
+            当前启用状态的消费 | 限额: ${{ currentLimit }} | 已用: {{ usagePercentage.toFixed(1) }}%
+          </div>
+        </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-label">历史消费总和</div>
+          <div class="stat-value history">{{ formatCost(historyPeriodsCostSum) }}</div>
+          <div class="stat-hint">
+            所有历史禁用周期的总消费
           </div>
         </el-card>
         <el-card class="stat-card" shadow="hover">
