@@ -17,6 +17,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.key-select {
+  width: 300px;
+}
+
+.key-status-tag {
+  margin-left: 12px;
 }
 
 .selector-label {
@@ -126,5 +135,113 @@
 
   :deep(.el-card__body) {
     background-color: #fef0f0;
+  }
+}
+
+// 移动端适配
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: 8px;
+  }
+
+  .key-name-section {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .key-name-selector {
+    width: 100%;
+
+    .selector-label {
+      flex-shrink: 0;
+    }
+  }
+
+  .key-select {
+    width: 100% !important;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .key-status-tag {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .stats-header {
+    padding: 12px;
+  }
+
+  .stats-title {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .stats-cards {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat-card {
+    flex: none;
+    width: 100%;
+
+    :deep(.el-card__body) {
+      padding: 12px;
+    }
+  }
+
+  .stat-label {
+    font-size: 13px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-hint {
+    font-size: 11px;
+  }
+
+  .stats-info {
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .el-button {
+      flex: 1;
+      min-width: 80px;
+    }
+  }
+
+  .update-time {
+    font-size: 11px;
+    width: 100%;
+  }
+
+  .polling-tag {
+    margin-right: 0;
+  }
+
+  .table-section {
+    padding: 8px;
+    overflow-x: auto;
+
+    .section-title {
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+  }
+
+  // 表格横向滚动
+  :deep(.el-table) {
+    font-size: 12px;
+
+    .el-table__body-wrapper {
+      overflow-x: auto;
+    }
+
+    th, td {
+      padding: 8px 4px;
+    }
   }
 }

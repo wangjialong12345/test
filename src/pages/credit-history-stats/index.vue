@@ -8,7 +8,7 @@
           v-model="selectedKeyName"
           placeholder="请选择 API Key"
           size="small"
-          style="width: 300px"
+          class="key-select"
         >
           <el-option
             v-for="keyName in keyNameList"
@@ -21,7 +21,7 @@
           v-if="selectedKeyName"
           :type="isCurrentKeyDisabled ? 'danger' : 'success'"
           size="small"
-          style="margin-left: 12px"
+          class="key-status-tag"
         >
           {{ isCurrentKeyDisabled ? '已禁用' : '已启用' }}
         </el-tag>

@@ -237,6 +237,19 @@ export class CreditStatsInstance {
     } catch { /* ignore */ }
   }
 
+  /** 获取指定 keyName 数据中最早的记录时间 */
+  private getEarliestTimeForKeyName(keyName: string): string {
+    const items = this._rawData.filter((item) => item.keyName === keyName);
+    if (items.length === 0) {
+      return new Date().toLocaleString('zh-CN');
+    }
+    // 按 createdAt 排序，取最早的
+    const sorted = [...items].sort((a, b) => {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+    return sorted[0].createdAt;
+  }
+
   private updateAccumulatedCosts(): void {
     const now = new Date().toLocaleString('zh-CN');
     const nowTimestamp = Date.now().toString();
@@ -247,11 +260,13 @@ export class CreditStatsInstance {
       let record = this.accumulatedCosts[keyName];
 
       if (!record) {
+        // 使用 API 数据中最早的记录时间作为周期开始时间
+        const earliestTime = this.getEarliestTimeForKeyName(keyName);
         record = {
           historyPeriods: [],
           currentPeriod: {
             periodId: nowTimestamp,
-            startedAt: now,
+            startedAt: earliestTime,
             endedAt: null,
             periodCost: currentApiCost,
             lastApiCost: currentApiCost,
@@ -260,9 +275,10 @@ export class CreditStatsInstance {
         };
         this.accumulatedCosts[keyName] = record;
       } else if (!record.currentPeriod) {
+        const earliestTime = this.getEarliestTimeForKeyName(keyName);
         record.currentPeriod = {
           periodId: nowTimestamp,
-          startedAt: now,
+          startedAt: earliestTime,
           endedAt: null,
           periodCost: currentApiCost,
           lastApiCost: currentApiCost,
@@ -271,11 +287,13 @@ export class CreditStatsInstance {
       } else {
         const period = record.currentPeriod;
         if (currentApiCost < period.lastApiCost * 0.8 && period.lastApiCost > 0) {
+          // 检测到后端清空数据，开始新周期
           period.endedAt = now;
           record.historyPeriods.push({ ...period });
+          const earliestTime = this.getEarliestTimeForKeyName(keyName);
           record.currentPeriod = {
             periodId: nowTimestamp,
-            startedAt: now,
+            startedAt: earliestTime,
             endedAt: null,
             periodCost: currentApiCost,
             lastApiCost: currentApiCost,
