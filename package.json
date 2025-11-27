@@ -1,0 +1,24 @@
+{
+  "name": "credit-stats",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^2.7.16",
+    "vue-router": "^3.6.5",
+    "vue-class-component": "^7.2.6",
+    "vue-property-decorator": "^9.1.2",
+    "element-ui": "^2.15.14",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "vite": "^3.2.7",
+    "@vitejs/plugin-vue2": "^2.3.1",
+    "typescript": "^5.3.3",
+    "less": "^4.2.0"
+  }
+}
