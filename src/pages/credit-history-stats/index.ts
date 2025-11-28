@@ -33,18 +33,23 @@ import { CreditHistoryItem } from './service/types';
 export default class extends Vue {
   private instance = new CreditStatsInstance();
 
-  /** 当前选中的 keyName */
+  /** 当前选中的 keyId */
+  get selectedKeyId(): string {
+    return this.instance.selectedKeyId;
+  }
+
+  set selectedKeyId(value: string) {
+    this.instance.selectKeyId(value);
+  }
+
+  /** 当前选中的 key 名称 */
   get selectedKeyName(): string {
-    return this.instance.selectedKeyName;
+    return this.instance.currentKeyName;
   }
 
-  set selectedKeyName(value: string) {
-    this.instance.selectKeyName(value);
-  }
-
-  /** keyName 列表 */
-  get keyNameList(): string[] {
-    return this.instance.keyNameList;
+  /** API Key 选项列表 */
+  get apiKeyOptions(): Array<{ keyId: string; name: string }> {
+    return this.instance.apiKeyOptions;
   }
 
   /** 筛选后的数据 */
@@ -57,9 +62,14 @@ export default class extends Vue {
     return this.instance.filteredCount;
   }
 
-  /** totalCost 总和（当前接口） */
+  /** totalCost 总和（历史累计） */
   get totalCostSum(): number {
     return this.instance.totalCostSum;
+  }
+
+  /** 今日累计消费 */
+  get todayCostSum(): number {
+    return this.instance.todayCostSum;
   }
 
   /** 总记录数 */

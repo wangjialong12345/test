@@ -18,6 +18,8 @@ export interface CreditHistoryItem {
   creditsAfter: number;
   /** 描述 */
   description: string;
+  /** Key ID（可能需要通过 keyName 映射） */
+  keyId?: string;
   /** Key名称 */
   keyName: string;
   /** 请求模型 */

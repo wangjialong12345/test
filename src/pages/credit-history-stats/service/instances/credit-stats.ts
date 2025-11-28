@@ -4,8 +4,11 @@ import { ApiKeyInfo, CreditHistoryItem } from '../types';
 /** 已禁用的 Key 存储 key */
 const STORAGE_KEY_DISABLED = 'credit-stats-disabled-keys';
 
-/** 选中的 keyName 存储 key */
-const STORAGE_KEY_SELECTED = 'credit-stats-selected-key';
+/** 选中的 keyId 存储 key */
+const STORAGE_KEY_SELECTED = 'credit-stats-selected-key-id';
+
+/** 旧的选中 keyName 存储 key（用于迁移） */
+const STORAGE_KEY_SELECTED_OLD = 'credit-stats-selected-key';
 
 /** 已禁用 Key 的记录 */
 export interface DisabledKeyRecord {
@@ -17,7 +20,7 @@ export interface DisabledKeyRecord {
 
 /** 积分统计实例 */
 export class CreditStatsInstance {
-  selectedKeyName: string = '';
+  selectedKeyId: string = '';
   disabledKeys: Record<string, DisabledKeyRecord> = {};
   apiKeyList: ApiKeyInfo[] = [];
   lastUpdatedAt: string | null = null;
@@ -37,7 +40,7 @@ export class CreditStatsInstance {
 
   constructor() {
     this.loadDisabledKeys();
-    this.loadSelectedKeyName();
+    this.loadSelectedKeyId();
 
     // 初始化
     this.init();
@@ -59,10 +62,16 @@ export class CreditStatsInstance {
       if (response.ok && response.data?.list) {
         this.apiKeyList = response.data.list;
 
-        if (!this.selectedKeyName || !this.apiKeyList.some((k) => k.name === this.selectedKeyName)) {
+        // 迁移逻辑：如果没有新的 keyId，尝试从旧的 keyName 迁移
+        if (!this.selectedKeyId) {
+          this.migrateFromOldStorage();
+        }
+
+        // 验证选中的 keyId 是否存在
+        if (!this.selectedKeyId || !this.apiKeyList.some((k) => k.keyId === this.selectedKeyId)) {
           if (this.apiKeyList.length > 0) {
-            this.selectedKeyName = this.apiKeyList[0].name;
-            this.saveSelectedKeyName();
+            this.selectedKeyId = this.apiKeyList[0].keyId;
+            this.saveSelectedKeyId();
           }
         }
       }
@@ -85,7 +94,24 @@ export class CreditStatsInstance {
     try {
       const response = await model.queryCreditHistory({ pageNum: 1, pageSize: 10000 });
       if (response.code === 0 && response.data) {
-        this._rawData = response.data.list || [];
+        // 获取原始数据
+        let rawList = response.data.list || [];
+
+        // 为每条记录补充 keyId（如果 API 返回的数据没有 keyId）
+        rawList = rawList.map((item) => {
+          // 如果已经有 keyId，直接返回
+          if (item.keyId) {
+            return item;
+          }
+          // 否则通过 keyName 查找对应的 keyId
+          const matchedKey = this.apiKeyList.find((k) => k.name === item.keyName);
+          return {
+            ...item,
+            keyId: matchedKey?.keyId || '', // 如果找不到就设为空字符串
+          };
+        });
+
+        this._rawData = rawList;
         this._totalCount = response.data.total || 0;
         this.lastUpdatedAt = new Date().toLocaleString('zh-CN');
 
@@ -118,14 +144,14 @@ export class CreditStatsInstance {
     }
   }
 
-  /** 选择 keyName */
-  selectKeyName(keyName: string): void {
-    this.selectedKeyName = keyName;
-    this.saveSelectedKeyName();
+  /** 选择 keyId */
+  selectKeyId(keyId: string): void {
+    this.selectedKeyId = keyId;
+    this.saveSelectedKeyId();
   }
 
-  get keyNameList(): string[] {
-    return this.apiKeyList.map((k) => k.name);
+  get apiKeyOptions(): Array<{ keyId: string; name: string }> {
+    return this.apiKeyList.map((k) => ({ keyId: k.keyId, name: k.name }));
   }
 
   get rawData(): CreditHistoryItem[] {
@@ -133,7 +159,8 @@ export class CreditStatsInstance {
   }
 
   get filteredData(): CreditHistoryItem[] {
-    return this._rawData.filter((item) => item.keyName === this.selectedKeyName);
+    if (!this.selectedKeyId) return [];
+    return this._rawData.filter((item) => item.keyId === this.selectedKeyId);
   }
 
   get filteredCount(): number {
@@ -142,6 +169,13 @@ export class CreditStatsInstance {
 
   get totalCostSum(): number {
     return this.filteredData.reduce((sum, item) => sum + item.totalCost, 0);
+  }
+
+  get todayCostSum(): number {
+    const today = new Date().toISOString().split('T')[0];
+    return this.filteredData
+      .filter((item) => item.createdAt.startsWith(today))
+      .reduce((sum, item) => sum + item.totalCost, 0);
   }
 
   get totalCount(): number {
@@ -167,25 +201,45 @@ export class CreditStatsInstance {
 
   // ========== Key 选择相关 ==========
 
-  private loadSelectedKeyName(): void {
+  private loadSelectedKeyId(): void {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_SELECTED);
       if (stored) {
-        this.selectedKeyName = stored;
+        this.selectedKeyId = stored;
       }
     } catch { /* ignore */ }
   }
 
-  private saveSelectedKeyName(): void {
+  private saveSelectedKeyId(): void {
     try {
-      localStorage.setItem(STORAGE_KEY_SELECTED, this.selectedKeyName);
+      localStorage.setItem(STORAGE_KEY_SELECTED, this.selectedKeyId);
     } catch { /* ignore */ }
   }
 
-  /** 获取指定 keyName 的当前总消费 */
-  private getCurrentCostForKeyName(keyName: string): number {
+  /** 从旧的 keyName 存储迁移到 keyId */
+  private migrateFromOldStorage(): void {
+    try {
+      const oldKeyName = localStorage.getItem(STORAGE_KEY_SELECTED_OLD);
+      if (oldKeyName) {
+        // 根据旧的 keyName 找到对应的 keyId
+        const matchedKey = this.apiKeyList.find((k) => k.name === oldKeyName);
+        if (matchedKey) {
+          this.selectedKeyId = matchedKey.keyId;
+          this.saveSelectedKeyId();
+          // 删除旧的存储
+          localStorage.removeItem(STORAGE_KEY_SELECTED_OLD);
+          console.log(`[CreditStats] 已从旧存储迁移: ${oldKeyName} -> ${matchedKey.keyId}`);
+        }
+      }
+    } catch (error) {
+      console.error('[CreditStats] 迁移旧存储失败:', error);
+    }
+  }
+
+  /** 获取指定 keyId 的当前总消费 */
+  private getCurrentCostForKeyId(keyId: string): number {
     return this._rawData
-      .filter((item) => item.keyName === keyName)
+      .filter((item) => item.keyId === keyId)
       .reduce((sum, item) => sum + item.totalCost, 0);
   }
 
@@ -216,14 +270,15 @@ export class CreditStatsInstance {
       if (!isActive) continue;
 
       // 跳过名为 "claude" 的 key，它没有限额
+      // 注意：这里仍然使用 keyName 判断是为了兼容特殊命名的 key
       if (keyName === 'claude') {
         continue;
       }
 
-      const currentCost = this.getCurrentCostForKeyName(keyName);
+      const currentCost = this.getCurrentCostForKeyId(keyId);
 
       if (currentCost >= costLimit) {
-        console.log(`[CreditStats] ${keyName} 消费 ${currentCost.toFixed(2)} 已超过限额 ${costLimit}，正在禁用...`);
+        console.log(`[CreditStats] ${keyName} (${keyId}) 消费 ${currentCost.toFixed(2)} 已超过限额 ${costLimit}，正在禁用...`);
         try {
           const response = await model.toggleKeyStatus(keyId);
           if (response.ok) {
@@ -238,19 +293,23 @@ export class CreditStatsInstance {
             this.saveDisabledKeys();
           }
         } catch (error) {
-          console.error(`[CreditStats] 禁用 ${keyName} 出错:`, error);
+          console.error(`[CreditStats] 禁用 ${keyName} (${keyId}) 出错:`, error);
         }
       }
     }
   }
 
   get currentApiKeyInfo(): ApiKeyInfo | null {
-    return this.apiKeyList.find((k) => k.name === this.selectedKeyName) || null;
+    return this.apiKeyList.find((k) => k.keyId === this.selectedKeyId) || null;
+  }
+
+  get currentKeyName(): string {
+    return this.currentApiKeyInfo?.name || '';
   }
 
   get currentLimit(): number {
     // claude key 没有限额
-    if (this.selectedKeyName === 'claude') {
+    if (this.currentKeyName === 'claude') {
       return 0;
     }
     return 165; // 其他 key 都有 165 美元限额
