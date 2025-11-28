@@ -15,6 +15,7 @@ import {
   DisabledKeyRecord,
 } from './service/instances/credit-stats';
 import { CreditHistoryItem } from './service/types';
+import CostChart from './components/CostChart.vue';
 
 @Component({
   name: 'CreditHistoryStats',
@@ -28,6 +29,7 @@ import { CreditHistoryItem } from './service/types';
     ElTable: Table,
     ElTableColumn: TableColumn,
     ElTag: Tag,
+    CostChart,
   },
 })
 export default class extends Vue {

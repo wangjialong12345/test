@@ -1,0 +1,75 @@
+.cost-chart-container {
+  margin-bottom: 16px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .chart-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      .time-range-select {
+        width: 120px;
+      }
+
+      .display-mode-group {
+        // Element UI 样式已处理
+      }
+    }
+  }
+
+  .chart-wrapper {
+    width: 100%;
+    height: 400px;
+
+    @media (max-width: 768px) {
+      height: 250px;
+    }
+  }
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    padding: 12px;
+
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .chart-title {
+        font-size: 14px;
+      }
+
+      .chart-controls {
+        width: 100%;
+        justify-content: space-between;
+
+        .time-range-select {
+          flex: 1;
+          max-width: 120px;
+        }
+
+        .display-mode-group {
+          flex: 1;
+        }
+      }
+    }
+  }
+}

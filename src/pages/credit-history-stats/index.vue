@@ -105,6 +105,12 @@
       </div>
     </div>
 
+    <!-- 消费趋势图表 -->
+    <cost-chart
+      :raw-data="instance.rawData"
+      :api-key-list="instance.apiKeyList"
+    />
+
     <!-- 错误提示 -->
     <el-alert
       v-if="error"
@@ -121,7 +127,6 @@
         fit
         :data="tableData"
         highlight-current-row
-        height="calc(100vh - 360px)"
       >
         <el-table-column
           label="时间"
