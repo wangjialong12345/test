@@ -74,6 +74,14 @@ export default class extends Vue {
     return this.instance.todayCostSum;
   }
 
+  /** 今日所有 Key 消费总额 */
+  get todayAllKeysCostSum(): number {
+    const today = new Date().toISOString().split('T')[0];
+    return this.instance.rawData
+      .filter((item) => item.createdAt.startsWith(today))
+      .reduce((sum, item) => sum + item.totalCost, 0);
+  }
+
   /** 总记录数 */
   get totalCount(): number {
     return this.instance.totalCount;

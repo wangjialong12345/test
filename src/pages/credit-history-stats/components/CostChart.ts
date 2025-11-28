@@ -135,13 +135,6 @@ export default class extends Vue {
       return;
     }
 
-    // 调试：输出原始数据信息
-    console.log('[CostChart] 原始数据总数:', this.rawData.length);
-    if (this.rawData.length > 0) {
-      console.log('[CostChart] 第一条数据示例:', this.rawData[0]);
-      console.log('[CostChart] 最后一条数据示例:', this.rawData[this.rawData.length - 1]);
-    }
-
     // 处理数据
     const chartData = ChartDataProcessor.processChartData(
       this.rawData,
@@ -149,11 +142,6 @@ export default class extends Vue {
       this.timeRange,
       this.displayMode
     );
-
-    // 调试：输出处理后的数据
-    console.log('[CostChart] 时间范围:', this.timeRange);
-    console.log('[CostChart] 显示模式:', this.displayMode);
-    console.log('[CostChart] 处理后的数据:', chartData);
 
     // 生成 ECharts 配置
     const option = this.generateChartOption(chartData);
@@ -174,20 +162,45 @@ export default class extends Vue {
     return {
       tooltip: {
         trigger: 'axis',
+        confine: true, // 限制 tooltip 在图表区域内
+        position: function (point, params, dom, rect, size) {
+          // 自定义 tooltip 位置，避免被遮挡
+          const x = point[0];
+          const y = point[1];
+          const viewWidth = size.viewSize[0];
+          const viewHeight = size.viewSize[1];
+          const boxWidth = size.contentSize[0];
+          const boxHeight = size.contentSize[1];
+
+          let posX = x + 10;
+          let posY = y + 10;
+
+          // 如果右侧空间不够，显示在左侧
+          if (posX + boxWidth > viewWidth) {
+            posX = x - boxWidth - 10;
+          }
+
+          // 如果下方空间不够，显示在上方
+          if (posY + boxHeight > viewHeight) {
+            posY = y - boxHeight - 10;
+          }
+
+          return [posX, posY];
+        },
         formatter: (params: any) => {
           if (!Array.isArray(params) || params.length === 0) {
             return '';
           }
 
           const time = params[0].axisValue;
-          let html = `<div style="font-weight: bold; margin-bottom: 8px;">${time}</div>`;
+          let html = `<div style="font-weight: bold; margin-bottom: 8px; font-size: ${isMobile ? '12px' : '14px'};">${time}</div>`;
 
           params.forEach((item: any) => {
             const color = item.color;
             const name = item.seriesName;
             const value = item.value;
             html += `
-              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; margin-bottom: 4px; font-size: ${isMobile ? '11px' : '13px'};">
                 <span style="display: inline-block; width: 10px; height: 10px; background-color: ${color}; border-radius: 50%; margin-right: 8px;"></span>
                 <span>${name}: $${value.toFixed(6)}</span>
               </div>
@@ -201,12 +214,19 @@ export default class extends Vue {
         type: 'scroll',
         data: chartData.series.map(s => s.name),
         bottom: 0,
+        textStyle: {
+          fontSize: isMobile ? 10 : 12,
+        },
+        pageIconSize: isMobile ? 10 : 12,
+        pageTextStyle: {
+          fontSize: isMobile ? 10 : 12,
+        },
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%',
-        top: '3%',
+        left: isMobile ? '5%' : '3%',
+        right: isMobile ? '5%' : '4%',
+        bottom: isMobile ? '20%' : '15%',
+        top: isMobile ? '5%' : '3%',
         containLabel: true,
       },
       xAxis: {
@@ -220,8 +240,12 @@ export default class extends Vue {
       yAxis: {
         type: 'value',
         name: '消费金额 ($)',
+        nameTextStyle: {
+          fontSize: isMobile ? 10 : 12,
+        },
         axisLabel: {
           formatter: (value: number) => `$${value.toFixed(2)}`,
+          fontSize: isMobile ? 10 : 12,
         },
       },
       series: chartData.series.map(s => ({

@@ -82,6 +82,13 @@
           <div class="stat-label">当前接口记录</div>
           <div class="stat-value total">{{ filteredCount }} 条</div>
         </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-label">今日所有Key总消费</div>
+          <div class="stat-value all-keys">{{ formatCost(todayAllKeysCostSum) }}</div>
+          <div class="stat-hint">
+            全部 Key 当日总额
+          </div>
+        </el-card>
       </div>
       <div class="stats-info">
         <span v-if="lastUpdatedAt" class="update-time">
@@ -121,7 +128,7 @@
 
     <!-- 明细列表 -->
     <div class="table-section">
-      <h3 class="section-title">明细列表</h3>
+      <h3 class="section-title">明细列表 - {{ selectedKeyName }}</h3>
       <el-table
         v-loading="isLoading"
         fit
