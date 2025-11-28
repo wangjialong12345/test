@@ -11,7 +11,6 @@ import {
 } from 'element-ui';
 import { Component, Vue } from 'vue-property-decorator';
 import {
-  CostPeriod,
   CreditStatsInstance,
   DisabledKeyRecord,
 } from './service/instances/credit-stats';
@@ -61,36 +60,6 @@ export default class extends Vue {
   /** totalCost 总和（当前接口） */
   get totalCostSum(): number {
     return this.instance.totalCostSum;
-  }
-
-  /** 累计消费总和（含历史） */
-  get accumulatedCostSum(): number {
-    return this.instance.accumulatedCostSum;
-  }
-
-  /** 当前周期消费 */
-  get currentPeriodCost(): number {
-    return this.instance.currentPeriodCost;
-  }
-
-  /** 历史周期列表 */
-  get historyPeriods(): CostPeriod[] {
-    return this.instance.historyPeriods;
-  }
-
-  /** 历史周期消费总和 */
-  get historyPeriodsCostSum(): number {
-    return this.instance.historyPeriodsCostSum;
-  }
-
-  /** 当前周期信息 */
-  get currentPeriod(): CostPeriod | null {
-    return this.instance.currentPeriod;
-  }
-
-  /** 最后存储时间 */
-  get lastSavedAt(): string | null {
-    return this.instance.lastSavedAt;
   }
 
   /** 总记录数 */
@@ -146,12 +115,6 @@ export default class extends Vue {
   /** 手动刷新 */
   refresh(): void {
     this.instance.refresh();
-  }
-
-  /** 手动保存累计数据 */
-  saveNow(): void {
-    this.instance.saveNow();
-    this.$message.success('累计数据已保存');
   }
 
   destroyed(): void {

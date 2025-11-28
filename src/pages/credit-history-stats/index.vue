@@ -53,36 +53,23 @@
         <el-tag v-if="isCurrentKeyDisabled" type="danger" size="small" style="margin-left: 8px">
           已禁用
         </el-tag>
-        <el-tag v-else :type="usagePercentage >= 90 ? 'warning' : 'success'" size="small" style="margin-left: 8px">
+        <el-tag v-else-if="currentLimit > 0" :type="usagePercentage >= 90 ? 'warning' : 'success'" size="small" style="margin-left: 8px">
           额度: {{ usagePercentage.toFixed(1) }}%
+        </el-tag>
+        <el-tag v-else type="info" size="small" style="margin-left: 8px">
+          无限额
         </el-tag>
       </h2>
       <div class="stats-cards">
-        <el-card class="stat-card" shadow="hover" :class="{ 'card-danger': isCurrentKeyDisabled || usagePercentage >= 100 }">
-          <div class="stat-label">累计消费总和</div>
-          <div class="stat-value accumulated">{{ formatCost(accumulatedCostSum) }}</div>
-          <div class="stat-hint">
-            当前启用状态的消费 | 限额: ${{ currentLimit }} | 已用: {{ usagePercentage.toFixed(1) }}%
+        <el-card class="stat-card" shadow="hover" :class="{ 'card-danger': isCurrentKeyDisabled || (currentLimit > 0 && usagePercentage >= 100) }">
+          <div class="stat-label">当前消费</div>
+          <div class="stat-value accumulated">{{ formatCost(totalCostSum) }}</div>
+          <div class="stat-hint" v-if="currentLimit > 0">
+            限额: ${{ currentLimit }} | 已用: {{ usagePercentage.toFixed(1) }}%
           </div>
-        </el-card>
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-label">历史消费总和</div>
-          <div class="stat-value history">{{ formatCost(historyPeriodsCostSum) }}</div>
-          <div class="stat-hint">
-            所有历史禁用周期的总消费
+          <div class="stat-hint" v-else>
+            无限额限制
           </div>
-        </el-card>
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-label">当前周期消费</div>
-          <div class="stat-value cost">{{ formatCost(currentPeriodCost) }}</div>
-          <div class="stat-hint" v-if="currentPeriod">
-            开始于: {{ currentPeriod.startedAt }}
-          </div>
-        </el-card>
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-label">历史周期数</div>
-          <div class="stat-value count">{{ historyPeriods.length }} 个</div>
-          <div class="stat-hint">后端数据清空次数</div>
         </el-card>
         <el-card class="stat-card" shadow="hover">
           <div class="stat-label">当前接口记录</div>
@@ -92,9 +79,6 @@
       <div class="stats-info">
         <span v-if="lastUpdatedAt" class="update-time">
           最后更新: {{ lastUpdatedAt }}
-        </span>
-        <span v-if="lastSavedAt" class="update-time">
-          | 最后存储: {{ lastSavedAt }}
         </span>
         <el-tag v-if="isRefetching" type="info" size="small" class="polling-tag">
           刷新中...
@@ -110,14 +94,6 @@
           @click="refresh"
         >
           立即刷新
-        </el-button>
-        <el-button
-          type="success"
-          icon="el-icon-folder-checked"
-          size="small"
-          @click="saveNow"
-        >
-          立即存储
         </el-button>
       </div>
     </div>
@@ -153,31 +129,31 @@
           align="center"
         />
         <el-table-column
-          label="Input Tokens"
+          label="输入令牌"
           prop="inputTokens"
           min-width="120"
           align="center"
         />
         <el-table-column
-          label="Output Tokens"
+          label="输出令牌"
           prop="outputTokens"
           min-width="120"
           align="center"
         />
         <el-table-column
-          label="Cache Create"
+          label="缓存创建"
           prop="cacheCreateTokens"
           min-width="120"
           align="center"
         />
         <el-table-column
-          label="Cache Read"
+          label="缓存读取"
           prop="cacheReadTokens"
           min-width="120"
           align="center"
         />
         <el-table-column
-          label="Total Cost"
+          label="总消费"
           prop="totalCost"
           min-width="120"
           align="center"
@@ -186,12 +162,6 @@
             {{ formatCost(row.totalCost) }}
           </template>
         </el-table-column>
-        <el-table-column
-          label="描述"
-          prop="description"
-          min-width="160"
-          align="center"
-        />
       </el-table>
     </div>
   </div>

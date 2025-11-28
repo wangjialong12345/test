@@ -1,35 +1,11 @@
 import { model } from '../model';
-import { ApiKeyInfo, CreditHistoryItem, DEFAULT_COST_LIMIT } from '../types';
-
-/** 累计消费存储 key */
-const STORAGE_KEY_COSTS = 'credit-stats-accumulated-costs-v2';
-
-/** 累计存储间隔（毫秒）- 30分钟 */
-const SAVE_INTERVAL = 30 * 60 * 1000;
+import { ApiKeyInfo, CreditHistoryItem } from '../types';
 
 /** 已禁用的 Key 存储 key */
 const STORAGE_KEY_DISABLED = 'credit-stats-disabled-keys';
 
 /** 选中的 keyName 存储 key */
 const STORAGE_KEY_SELECTED = 'credit-stats-selected-key';
-
-/** 单个周期的消费记录 */
-export interface CostPeriod {
-  periodId: string;
-  startedAt: string;
-  endedAt: string | null;
-  periodCost: number;
-  lastApiCost: number;
-}
-
-/** 累计消费记录 */
-interface AccumulatedCostRecord {
-  historyPeriods: CostPeriod[];
-  currentPeriod: CostPeriod | null;
-  lastUpdatedAt: string;
-}
-
-type AccumulatedCosts = Record<string, AccumulatedCostRecord>;
 
 /** 已禁用 Key 的记录 */
 export interface DisabledKeyRecord {
@@ -42,14 +18,9 @@ export interface DisabledKeyRecord {
 /** 积分统计实例 */
 export class CreditStatsInstance {
   selectedKeyName: string = '';
-  accumulatedCosts: AccumulatedCosts = {};
   disabledKeys: Record<string, DisabledKeyRecord> = {};
   apiKeyList: ApiKeyInfo[] = [];
   lastUpdatedAt: string | null = null;
-  lastSavedAt: string | null = null;
-
-  /** 记录每个 key 的上一次激活状态，用于检测手动禁用/启用 */
-  private previousKeyStatus: Record<string, boolean> = {};
 
   /** 原始数据 */
   private _rawData: CreditHistoryItem[] = [];
@@ -60,15 +31,11 @@ export class CreditStatsInstance {
 
   /** 定时器 */
   private pollingTimer: ReturnType<typeof setInterval> | null = null;
-  private saveTimer: ReturnType<typeof setInterval> | null = null;
-  private keyStatusSyncTimer: ReturnType<typeof setInterval> | null = null;
 
   /** 轮询间隔 */
   private readonly pollingInterval = 60000; // 60秒
-  private readonly keyStatusSyncInterval = 15000; // 15秒
 
   constructor() {
-    this.loadAccumulatedCosts();
     this.loadDisabledKeys();
     this.loadSelectedKeyName();
 
@@ -83,8 +50,6 @@ export class CreditStatsInstance {
     await this.fetchCreditHistory();
     // 启动定时器
     this.startPolling();
-    this.startSaveTimer();
-    this.startKeyStatusSyncTimer();
   }
 
   /** 获取 API Key 列表 */
@@ -93,11 +58,6 @@ export class CreditStatsInstance {
       const response = await model.queryApiKeys({ pageNum: 1, pageSize: 100 });
       if (response.ok && response.data?.list) {
         this.apiKeyList = response.data.list;
-
-        // 初始化 previousKeyStatus
-        this.apiKeyList.forEach((keyInfo) => {
-          this.previousKeyStatus[keyInfo.keyId] = keyInfo.isActive;
-        });
 
         if (!this.selectedKeyName || !this.apiKeyList.some((k) => k.name === this.selectedKeyName)) {
           if (this.apiKeyList.length > 0) {
@@ -129,10 +89,8 @@ export class CreditStatsInstance {
         this._totalCount = response.data.total || 0;
         this.lastUpdatedAt = new Date().toLocaleString('zh-CN');
 
-        // 更新累计消费
-        this.updateAccumulatedCosts();
         // 检查超额
-        await this.syncApiKeyStatusAndCheck();
+        await this.checkAndDisableOverLimitKeys();
       } else {
         this._error = new Error(response.msg || '获取数据失败');
       }
@@ -207,7 +165,7 @@ export class CreditStatsInstance {
     this.fetchCreditHistory();
   }
 
-  // ========== 累计消费相关 ==========
+  // ========== Key 选择相关 ==========
 
   private loadSelectedKeyName(): void {
     try {
@@ -224,149 +182,11 @@ export class CreditStatsInstance {
     } catch { /* ignore */ }
   }
 
-  private loadAccumulatedCosts(): void {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY_COSTS);
-      if (stored) {
-        this.accumulatedCosts = JSON.parse(stored);
-        const records = Object.values(this.accumulatedCosts);
-        if (records.length > 0) {
-          this.lastSavedAt = records[0].lastUpdatedAt;
-        }
-      }
-    } catch {
-      this.accumulatedCosts = {};
-    }
-  }
-
-  private saveAccumulatedCosts(): void {
-    try {
-      localStorage.setItem(STORAGE_KEY_COSTS, JSON.stringify(this.accumulatedCosts));
-      this.lastSavedAt = new Date().toLocaleString('zh-CN');
-    } catch { /* ignore */ }
-  }
-
-  /** 获取指定 keyName 数据中最早的记录时间 */
-  private getEarliestTimeForKeyName(keyName: string): string {
-    const items = this._rawData.filter((item) => item.keyName === keyName);
-    if (items.length === 0) {
-      return new Date().toLocaleString('zh-CN');
-    }
-    // 按 createdAt 排序，取最早的
-    const sorted = [...items].sort((a, b) => {
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-    return sorted[0].createdAt;
-  }
-
-  private updateAccumulatedCosts(): void {
-    const now = new Date().toLocaleString('zh-CN');
-    const nowTimestamp = Date.now().toString();
-
-    this.apiKeyList.forEach((keyInfo) => {
-      const keyName = keyInfo.name;
-      const currentApiCost = this.getApiCostForKeyName(keyName);
-      let record = this.accumulatedCosts[keyName];
-
-      if (!record) {
-        // 使用 API 数据中最早的记录时间作为周期开始时间
-        const earliestTime = this.getEarliestTimeForKeyName(keyName);
-        record = {
-          historyPeriods: [],
-          currentPeriod: {
-            periodId: nowTimestamp,
-            startedAt: earliestTime,
-            endedAt: null,
-            periodCost: currentApiCost,
-            lastApiCost: currentApiCost,
-          },
-          lastUpdatedAt: now,
-        };
-        this.accumulatedCosts[keyName] = record;
-      } else if (!record.currentPeriod) {
-        const earliestTime = this.getEarliestTimeForKeyName(keyName);
-        record.currentPeriod = {
-          periodId: nowTimestamp,
-          startedAt: earliestTime,
-          endedAt: null,
-          periodCost: currentApiCost,
-          lastApiCost: currentApiCost,
-        };
-        record.lastUpdatedAt = now;
-      } else {
-        const period = record.currentPeriod;
-        if (currentApiCost < period.lastApiCost * 0.8 && period.lastApiCost > 0) {
-          // 检测到后端清空数据，开始新周期
-          period.endedAt = now;
-          record.historyPeriods.push({ ...period });
-          const earliestTime = this.getEarliestTimeForKeyName(keyName);
-          record.currentPeriod = {
-            periodId: nowTimestamp,
-            startedAt: earliestTime,
-            endedAt: null,
-            periodCost: currentApiCost,
-            lastApiCost: currentApiCost,
-          };
-        } else {
-          const increment = Math.max(0, currentApiCost - period.lastApiCost);
-          period.periodCost += increment;
-          period.lastApiCost = currentApiCost;
-        }
-        record.lastUpdatedAt = now;
-      }
-    });
-  }
-
-  private getApiCostForKeyName(keyName: string): number {
+  /** 获取指定 keyName 的当前总消费 */
+  private getCurrentCostForKeyName(keyName: string): number {
     return this._rawData
       .filter((item) => item.keyName === keyName)
       .reduce((sum, item) => sum + item.totalCost, 0);
-  }
-
-  private startSaveTimer(): void {
-    this.saveAccumulatedCosts();
-    this.saveTimer = setInterval(() => {
-      this.saveAccumulatedCosts();
-    }, SAVE_INTERVAL);
-  }
-
-  private stopSaveTimer(): void {
-    if (this.saveTimer) {
-      clearInterval(this.saveTimer);
-      this.saveTimer = null;
-    }
-  }
-
-  saveNow(): void {
-    this.saveAccumulatedCosts();
-  }
-
-  get accumulatedCostSum(): number {
-    const record = this.accumulatedCosts[this.selectedKeyName];
-    if (!record) return this.totalCostSum;
-    // 累计消费总和 = 当前启用状态的消费
-    return record.currentPeriod?.periodCost || 0;
-  }
-
-  get currentPeriodCost(): number {
-    const record = this.accumulatedCosts[this.selectedKeyName];
-    return record?.currentPeriod?.periodCost || this.totalCostSum;
-  }
-
-  get historyPeriods(): CostPeriod[] {
-    const record = this.accumulatedCosts[this.selectedKeyName];
-    return record?.historyPeriods || [];
-  }
-
-  get historyPeriodsCostSum(): number {
-    const record = this.accumulatedCosts[this.selectedKeyName];
-    if (!record) return 0;
-    return record.historyPeriods.reduce((sum, period) => sum + period.periodCost, 0);
-  }
-
-  get currentPeriod(): CostPeriod | null {
-    const record = this.accumulatedCosts[this.selectedKeyName];
-    return record?.currentPeriod || null;
   }
 
   // ========== Key 状态相关 ==========
@@ -388,149 +208,32 @@ export class CreditStatsInstance {
     } catch { /* ignore */ }
   }
 
-  private startKeyStatusSyncTimer(): void {
-    this.keyStatusSyncTimer = setInterval(() => {
-      this.syncApiKeyStatus();
-    }, this.keyStatusSyncInterval);
-  }
-
-  private stopKeyStatusSyncTimer(): void {
-    if (this.keyStatusSyncTimer) {
-      clearInterval(this.keyStatusSyncTimer);
-      this.keyStatusSyncTimer = null;
-    }
-  }
-
-  private async syncApiKeyStatus(): Promise<void> {
-    try {
-      const response = await model.queryApiKeys({ pageNum: 1, pageSize: 100 });
-      if (response.ok && response.data?.list) {
-        this.apiKeyList = response.data.list;
-        for (const keyInfo of response.data.list) {
-          const { keyId, name: keyName, isActive } = keyInfo;
-          const previousStatus = this.previousKeyStatus[keyId];
-
-          // 检测状态变化
-          if (previousStatus !== undefined && previousStatus !== isActive) {
-            if (!isActive) {
-              // 从启用变为禁用（手动禁用或其他设备禁用）
-              console.log(`[CreditStats] 检测到 ${keyName} 被禁用，正在保存当前周期到历史...`);
-              const currentCost = this.getAccumulatedCostForKeyName(keyName);
-              this.moveCurrentPeriodToHistory(keyName, currentCost);
-            } else {
-              // 从禁用变为启用（手动启用或其他设备启用）
-              console.log(`[CreditStats] 检测到 ${keyName} 被重新启用，正在重置累积消费...`);
-              this.resetAccumulatedCostForKeyName(keyName);
-
-              // 从禁用记录中移除
-              if (this.disabledKeys[keyId]) {
-                delete this.disabledKeys[keyId];
-                this.saveDisabledKeys();
-              }
-            }
-          }
-
-          // 更新状态记录
-          this.previousKeyStatus[keyId] = isActive;
-        }
-      }
-    } catch (error) {
-      console.error('[CreditStats] 同步 API Key 状态失败:', error);
-    }
-  }
-
-  /** 将当前周期移动到历史周期 */
-  private moveCurrentPeriodToHistory(keyName: string, costAtDisable: number): void {
-    const now = new Date().toLocaleString('zh-CN');
-    const record = this.accumulatedCosts[keyName];
-
-    if (record && record.currentPeriod) {
-      // 结束当前周期
-      record.currentPeriod.endedAt = now;
-
-      // 移动到历史周期
-      record.historyPeriods.push({ ...record.currentPeriod });
-
-      // 清空当前周期
-      record.currentPeriod = null;
-      record.lastUpdatedAt = now;
-
-      // 立即保存
-      this.saveAccumulatedCosts();
-      console.log(`[CreditStats] ${keyName} 当前周期已移动到历史周期，消费: ${costAtDisable.toFixed(2)}`);
-    }
-  }
-
-  /** 重置指定 keyName 的累积消费记录 */
-  private resetAccumulatedCostForKeyName(keyName: string): void {
-    const now = new Date().toLocaleString('zh-CN');
-    const nowTimestamp = Date.now().toString();
-    const currentApiCost = this.getApiCostForKeyName(keyName);
-    const earliestTime = this.getEarliestTimeForKeyName(keyName);
-
-    // 保留历史周期，只重置当前周期
-    // periodCost 设为 0，表示重新启用后从 0 开始累计
-    // lastApiCost 设为当前 API 返回值，作为后续增量计算的基准
-    const record = this.accumulatedCosts[keyName];
-    if (record) {
-      record.currentPeriod = {
-        periodId: nowTimestamp,
-        startedAt: earliestTime,
-        endedAt: null,
-        periodCost: 0, // 从 0 开始累计
-        lastApiCost: currentApiCost, // 记录当前 API 值作为基准
-      };
-      record.lastUpdatedAt = now;
-    } else {
-      this.accumulatedCosts[keyName] = {
-        historyPeriods: [],
-        currentPeriod: {
-          periodId: nowTimestamp,
-          startedAt: earliestTime,
-          endedAt: null,
-          periodCost: 0,
-          lastApiCost: currentApiCost,
-        },
-        lastUpdatedAt: now,
-      };
-    }
-
-    // 立即保存
-    this.saveAccumulatedCosts();
-    console.log(`[CreditStats] ${keyName} 累积消费已重置为 0，将从当前基准 ${currentApiCost.toFixed(2)} 开始计算增量`);
-  }
-
-  private async syncApiKeyStatusAndCheck(): Promise<void> {
-    await this.syncApiKeyStatus();
-    await this.checkAndDisableOverLimitKeys();
-  }
-
   private async checkAndDisableOverLimitKeys(): Promise<void> {
+    const costLimit = 165; // 通用限额
+
     for (const keyInfo of this.apiKeyList) {
       const { keyId, name: keyName, isActive } = keyInfo;
       if (!isActive) continue;
 
-      // 跳过名为 "claude" 的 key，不设置额度限制
+      // 跳过名为 "claude" 的 key，它没有限额
       if (keyName === 'claude') {
         continue;
       }
 
-      const accumulatedCost = this.getAccumulatedCostForKeyName(keyName);
-      if (accumulatedCost >= DEFAULT_COST_LIMIT) {
-        console.log(`[CreditStats] ${keyName} 累计消费 ${accumulatedCost.toFixed(2)} 已超过限额，正在禁用...`);
+      const currentCost = this.getCurrentCostForKeyName(keyName);
+
+      if (currentCost >= costLimit) {
+        console.log(`[CreditStats] ${keyName} 消费 ${currentCost.toFixed(2)} 已超过限额 ${costLimit}，正在禁用...`);
         try {
           const response = await model.toggleKeyStatus(keyId);
           if (response.ok) {
             keyInfo.isActive = false;
 
-            // 将当前周期移动到历史周期
-            this.moveCurrentPeriodToHistory(keyName, accumulatedCost);
-
             this.disabledKeys[keyId] = {
               keyId,
               keyName,
               disabledAt: new Date().toLocaleString('zh-CN'),
-              costAtDisable: accumulatedCost,
+              costAtDisable: currentCost,
             };
             this.saveDisabledKeys();
           }
@@ -541,19 +244,16 @@ export class CreditStatsInstance {
     }
   }
 
-  getAccumulatedCostForKeyName(keyName: string): number {
-    const record = this.accumulatedCosts[keyName];
-    if (!record) return this.getApiCostForKeyName(keyName);
-    // 只返回当前周期的消费，用于判断是否超过限额
-    return record.currentPeriod?.periodCost || 0;
-  }
-
   get currentApiKeyInfo(): ApiKeyInfo | null {
     return this.apiKeyList.find((k) => k.name === this.selectedKeyName) || null;
   }
 
   get currentLimit(): number {
-    return DEFAULT_COST_LIMIT;
+    // claude key 没有限额
+    if (this.selectedKeyName === 'claude') {
+      return 0;
+    }
+    return 165; // 其他 key 都有 165 美元限额
   }
 
   get isCurrentKeyDisabled(): boolean {
@@ -570,13 +270,10 @@ export class CreditStatsInstance {
 
   get usagePercentage(): number {
     if (!this.currentLimit) return 0;
-    return (this.accumulatedCostSum / this.currentLimit) * 100;
+    return (this.totalCostSum / this.currentLimit) * 100;
   }
 
   destroy(): void {
     this.stopPolling();
-    this.stopSaveTimer();
-    this.stopKeyStatusSyncTimer();
-    this.saveAccumulatedCosts();
   }
 }
