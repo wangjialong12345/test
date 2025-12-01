@@ -168,7 +168,7 @@ export class CreditStatsInstance {
   }
 
   get totalCostSum(): number {
-    return this.filteredData.reduce((sum, item) => sum + item.totalCost, 0);
+    return this.currentApiKeyInfo?.totalCost ?? 0;
   }
 
   get todayCostSum(): number {
@@ -238,9 +238,7 @@ export class CreditStatsInstance {
 
   /** 获取指定 keyId 的当前总消费 */
   private getCurrentCostForKeyId(keyId: string): number {
-    return this._rawData
-      .filter((item) => item.keyId === keyId)
-      .reduce((sum, item) => sum + item.totalCost, 0);
+    return this.apiKeyList.find((k) => k.keyId === keyId)?.totalCost ?? 0;
   }
 
   // ========== Key 状态相关 ==========
