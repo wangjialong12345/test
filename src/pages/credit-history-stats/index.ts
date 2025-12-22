@@ -14,7 +14,7 @@ import {
   CreditStatsInstance,
   DisabledKeyRecord,
 } from './service/instances/credit-stats';
-import { CreditHistoryItem } from './service/types';
+import { ApiKeyInfo, CreditHistoryItem } from './service/types';
 import CostChart from './components/CostChart.vue';
 
 @Component({
@@ -52,6 +52,16 @@ export default class extends Vue {
   /** API Key 选项列表 */
   get apiKeyOptions(): Array<{ keyId: string; name: string }> {
     return this.instance.apiKeyOptions;
+  }
+
+  /** 原始数据（用于图表） */
+  get rawData(): CreditHistoryItem[] {
+    return this.instance.rawData;
+  }
+
+  /** API Key 列表（用于图表） */
+  get apiKeyList(): ApiKeyInfo[] {
+    return this.instance.apiKeyList;
   }
 
   /** 筛选后的数据 */
@@ -130,6 +140,14 @@ export default class extends Vue {
   /** 格式化费用 */
   formatCost(cost: number): string {
     return cost.toFixed(6);
+  }
+
+  /** 格式化令牌数（>=1000 显示为 k） */
+  formatTokens(tokens: number): string {
+    if (tokens >= 1000) {
+      return `${(tokens / 1000).toFixed(1)}k`;
+    }
+    return String(tokens);
   }
 
   /** 手动刷新 */

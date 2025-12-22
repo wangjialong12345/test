@@ -10,7 +10,6 @@
         >
           <el-option label="今日" value="24h" />
           <el-option label="最近7天" value="7d" />
-          <el-option label="最近30天" value="30d" />
         </el-select>
         <el-radio-group
           v-model="displayMode"

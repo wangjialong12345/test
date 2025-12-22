@@ -114,8 +114,8 @@
 
     <!-- 消费趋势图表 -->
     <cost-chart
-      :raw-data="instance.rawData"
-      :api-key-list="instance.apiKeyList"
+      :raw-data="rawData"
+      :api-key-list="apiKeyList"
     />
 
     <!-- 错误提示 -->
@@ -152,25 +152,41 @@
           prop="inputTokens"
           min-width="120"
           align="center"
-        />
+        >
+          <template #default="{ row }">
+            {{ formatTokens(row.inputTokens) }}
+          </template>
+        </el-table-column>
         <el-table-column
           label="输出令牌"
           prop="outputTokens"
           min-width="120"
           align="center"
-        />
+        >
+          <template #default="{ row }">
+            {{ formatTokens(row.outputTokens) }}
+          </template>
+        </el-table-column>
         <el-table-column
           label="缓存创建"
           prop="cacheCreateTokens"
           min-width="120"
           align="center"
-        />
+        >
+          <template #default="{ row }">
+            {{ formatTokens(row.cacheCreateTokens) }}
+          </template>
+        </el-table-column>
         <el-table-column
           label="缓存读取"
           prop="cacheReadTokens"
           min-width="120"
           align="center"
-        />
+        >
+          <template #default="{ row }">
+            {{ formatTokens(row.cacheReadTokens) }}
+          </template>
+        </el-table-column>
         <el-table-column
           label="总消费"
           prop="totalCost"

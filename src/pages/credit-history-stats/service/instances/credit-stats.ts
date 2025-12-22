@@ -132,6 +132,7 @@ export class CreditStatsInstance {
   /** 启动轮询 */
   private startPolling(): void {
     this.pollingTimer = setInterval(() => {
+      this.fetchApiKeyList(); // 同时刷新 API Key 列表以获取最新的累计消费
       this.fetchCreditHistory();
     }, this.pollingInterval);
   }
@@ -168,7 +169,7 @@ export class CreditStatsInstance {
   }
 
   get totalCostSum(): number {
-    return this.currentApiKeyInfo?.totalCost ?? 0;
+    return this.currentApiKeyInfo?.totalCost ?? this.todayCostSum;
   }
 
   get todayCostSum(): number {
@@ -196,6 +197,7 @@ export class CreditStatsInstance {
 
   /** 手动刷新 */
   refresh(): void {
+    this.fetchApiKeyList(); // 同时刷新 API Key 列表以获取最新的累计消费
     this.fetchCreditHistory();
   }
 
@@ -236,9 +238,23 @@ export class CreditStatsInstance {
     }
   }
 
-  /** 获取指定 keyId 的当前总消费 */
+  /** 获取指定 keyId 的当前总消费（API 返回） */
   private getCurrentCostForKeyId(keyId: string): number {
     return this.apiKeyList.find((k) => k.keyId === keyId)?.totalCost ?? 0;
+  }
+
+  /** 获取指定 keyId 的历史累计消费（API 历史 + 今日消费） */
+  private getTotalCostForKeyId(keyId: string): number {
+    const apiTotalCost = this.apiKeyList.find((k) => k.keyId === keyId)?.totalCost ?? 0;
+    return apiTotalCost + this.getTodayCostForKeyId(keyId);
+  }
+
+  /** 获取指定 keyId 的今日消费（从历史记录计算） */
+  private getTodayCostForKeyId(keyId: string): number {
+    const today = new Date().toISOString().split('T')[0];
+    return this._rawData
+      .filter((item) => item.keyId === keyId && item.createdAt.startsWith(today))
+      .reduce((sum, item) => sum + item.totalCost, 0);
   }
 
   // ========== Key 状态相关 ==========
@@ -261,22 +277,24 @@ export class CreditStatsInstance {
   }
 
   private async checkAndDisableOverLimitKeys(): Promise<void> {
-    const costLimit = 165; // 通用限额
-
     for (const keyInfo of this.apiKeyList) {
-      const { keyId, name: keyName, isActive } = keyInfo;
+      const { keyId, name: keyName, isActive, description } = keyInfo;
       if (!isActive) continue;
 
-      // 跳过名为 "claude" 的 key，它没有限额
-      // 注意：这里仍然使用 keyName 判断是为了兼容特殊命名的 key
-      if (keyName === 'claude') {
+      // 跳过名为 "claude自动" 的 key，它没有限额
+      if (keyName === 'claude自动') {
         continue;
       }
 
-      const currentCost = this.getCurrentCostForKeyId(keyId);
+      // 从 description 字段解析额度，如果没有配置则使用默认的 165
+      const costLimit = this.parseCostLimitFromDescription(description);
+      if (costLimit === 0) continue; // 无限额
 
-      if (currentCost >= costLimit) {
-        console.log(`[CreditStats] ${keyName} (${keyId}) 消费 ${currentCost.toFixed(2)} 已超过限额 ${costLimit}，正在禁用...`);
+      // 使用历史累计消费（API 历史 + 今日消费）来判断是否超额
+      const totalCost = this.getTotalCostForKeyId(keyId);
+
+      if (totalCost >= costLimit) {
+        console.log(`[CreditStats] ${keyName} (${keyId}) 历史累计消费 ${totalCost.toFixed(2)} 已超过限额 ${costLimit}，正在禁用...`);
         try {
           const response = await model.toggleKeyStatus(keyId);
           if (response.ok) {
@@ -286,7 +304,7 @@ export class CreditStatsInstance {
               keyId,
               keyName,
               disabledAt: new Date().toLocaleString('zh-CN'),
-              costAtDisable: currentCost,
+              costAtDisable: totalCost,
             };
             this.saveDisabledKeys();
           }
@@ -306,11 +324,26 @@ export class CreditStatsInstance {
   }
 
   get currentLimit(): number {
-    // claude key 没有限额
-    if (this.currentKeyName === 'claude') {
+    // "claude自动" key 没有限额
+    if (this.currentKeyName === 'claude自动') {
       return 0;
     }
-    return 165; // 其他 key 都有 165 美元限额
+    // 从当前 key 的 description 字段解析额度
+    const description = this.currentApiKeyInfo?.description;
+    return this.parseCostLimitFromDescription(description);
+  }
+
+  /** 从 description 字段解析额度 */
+  private parseCostLimitFromDescription(description: string | null | undefined): number {
+    if (!description) {
+      return 165; // 默认 165 美元
+    }
+    // 尝试解析数字
+    const parsed = parseFloat(description);
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return 165; // 无法解析则使用默认值
   }
 
   get isCurrentKeyDisabled(): boolean {
