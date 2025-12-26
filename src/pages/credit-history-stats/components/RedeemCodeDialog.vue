@@ -37,6 +37,7 @@
       <div class="progress-stats">
         <span class="stat success">成功: {{ successCount }}</span>
         <span class="stat used">已被使用: {{ usedCount }}</span>
+        <span class="stat failed">失败: {{ failedCount }}</span>
         <span class="stat pending">待处理: {{ pendingCount }}</span>
       </div>
     </div>
@@ -55,6 +56,7 @@
             <i v-if="result.status === 'pending'" class="el-icon-time" />
             <i v-else-if="result.status === 'success'" class="el-icon-success" />
             <i v-else-if="result.status === 'used'" class="el-icon-warning" />
+            <i v-else-if="result.status === 'failed'" class="el-icon-error" />
           </span>
           <span class="result-code">{{ result.code }}</span>
           <span class="result-message">{{ result.message }}</span>

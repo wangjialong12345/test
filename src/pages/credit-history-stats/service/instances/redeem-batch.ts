@@ -100,6 +100,13 @@ export class RedeemBatchInstance {
         await this.sleep(2000);
       }
     }
+
+    // 将达到最大轮次后仍然 pending 的项目标记为 failed
+    this.results.forEach((result, index) => {
+      if (result.status === 'pending') {
+        this.updateResult(index, 'failed', '达到最大重试次数，处理失败');
+      }
+    });
   }
 
   /**
@@ -169,12 +176,18 @@ export class RedeemBatchInstance {
 
       const errorMsg = result.msg || '激活失败';
 
-      // 判断错误类型：验证码错误需要重试，其他都是兑换码问题
+      // 判断错误类型：
+      // 1. 验证码错误需要重试
       if (errorMsg.includes('验证码')) {
         return { status: 'captcha_error', message: errorMsg };
       }
 
-      // 兑换码不存在、已失效、已被使用、格式不正确等都归为 code_invalid
+      // 2. 频繁请求错误需要等待重试
+      if (errorMsg.includes('频繁') || errorMsg.includes('稍后')) {
+        return { status: 'rate_limited', message: errorMsg };
+      }
+
+      // 3. 兑换码不存在、已失效、已被使用、格式不正确等都归为 code_invalid
       return { status: 'code_invalid', message: errorMsg };
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误';
@@ -222,7 +235,7 @@ export class RedeemBatchInstance {
   get progress(): number {
     if (this.results.length === 0) return 0;
     const completed = this.results.filter(
-      (r) => r.status === 'success' || r.status === 'used'
+      (r) => r.status === 'success' || r.status === 'used' || r.status === 'failed'
     ).length;
     return Math.round((completed / this.results.length) * 100);
   }
@@ -239,6 +252,13 @@ export class RedeemBatchInstance {
    */
   get usedCount(): number {
     return this.results.filter((r) => r.status === 'used').length;
+  }
+
+  /**
+   * 获取失败数量
+   */
+  get failedCount(): number {
+    return this.results.filter((r) => r.status === 'failed').length;
   }
 
   /**

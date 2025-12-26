@@ -54,6 +54,10 @@ export default class RedeemCodeDialog extends Vue {
     return this.instance.usedCount;
   }
 
+  get failedCount(): number {
+    return this.instance.failedCount;
+  }
+
   get pendingCount(): number {
     return this.results.filter((r) => r.status === 'pending').length;
   }

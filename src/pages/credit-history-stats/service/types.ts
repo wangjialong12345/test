@@ -164,7 +164,7 @@ export interface RedeemRequest {
 }
 
 /** 兑换码处理状态 */
-export type RedeemStatus = 'pending' | 'success' | 'used';
+export type RedeemStatus = 'pending' | 'success' | 'used' | 'failed';
 
 /** 兑换码处理结果 */
 export interface RedeemResult {
