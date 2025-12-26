@@ -2,11 +2,13 @@
   <el-dialog
     title="批量激活兑换码"
     :visible.sync="dialogVisible"
-    width="600px"
+    width="90%"
+    :style="{ maxWidth: '600px' }"
     :close-on-click-modal="false"
     :close-on-press-escape="!isProcessing"
     :show-close="!isProcessing"
     @close="handleClose"
+    custom-class="redeem-dialog"
   >
     <!-- 输入区域 -->
     <div class="input-section">
@@ -22,6 +24,36 @@
         已输入 <span class="count">{{ codeCount }}</span> 个兑换码
       </div>
     </div>
+
+    <!-- OCR 加载状态 -->
+    <el-alert
+      v-if="isOCRLoading"
+      type="info"
+      :closable="false"
+      style="margin-bottom: 16px"
+    >
+      <template #title>
+        <span><i class="el-icon-loading" /> 正在加载 OCR 识别引擎，请稍候...</span>
+      </template>
+      <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+        首次加载需要下载模型文件，可能需要几秒钟
+      </div>
+    </el-alert>
+
+    <!-- OCR 加载失败 -->
+    <el-alert
+      v-if="isOCRError"
+      type="error"
+      :closable="false"
+      style="margin-bottom: 16px"
+    >
+      <template #title>
+        <span><i class="el-icon-warning" /> OCR 引擎加载失败</span>
+      </template>
+      <div style="font-size: 12px; margin-top: 4px;">
+        请检查网络连接后重新打开对话框
+      </div>
+    </el-alert>
 
     <!-- 进度区域 -->
     <div v-if="isProcessing || results.length > 0" class="progress-section">
@@ -71,11 +103,11 @@
       </el-button>
       <el-button
         type="primary"
-        :loading="isProcessing"
-        :disabled="codeCount === 0"
+        :loading="isProcessing || isOCRLoading"
+        :disabled="!canStart"
         @click="handleStart"
       >
-        {{ isProcessing ? '正在激活...' : '开始激活' }}
+        {{ isOCRLoading ? '加载中...' : isProcessing ? '正在激活...' : '开始激活' }}
       </el-button>
     </template>
   </el-dialog>

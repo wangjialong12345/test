@@ -1,7 +1,7 @@
 import { CreditHistoryItem, ApiKeyInfo } from './types';
 
 /** 时间范围类型 */
-export type TimeRange = '24h' | '7d' | '30d';
+export type TimeRange = '24h' | '3d' | '7d' | '30d';
 
 /** 显示模式 */
 export type DisplayMode = 'summary' | 'separate';
@@ -69,7 +69,7 @@ export class ChartDataProcessor {
         ],
       };
     } else {
-      const days = timeRange === '7d' ? 7 : 30;
+      const days = timeRange === '3d' ? 3 : timeRange === '7d' ? 7 : 30;
       const aggregated = this.aggregateByDay(rawData, days);
       return {
         xAxisData: aggregated.map(d => d.label),
@@ -108,7 +108,7 @@ export class ChartDataProcessor {
     if (timeRange === '24h') {
       xAxisData = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
     } else {
-      const days = timeRange === '7d' ? 7 : 30;
+      const days = timeRange === '3d' ? 3 : timeRange === '7d' ? 7 : 30;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       xAxisData = Array.from({ length: days }, (_, i) => {
@@ -127,7 +127,7 @@ export class ChartDataProcessor {
       if (timeRange === '24h') {
         dataPoints = this.aggregateByHour(items);
       } else {
-        const days = timeRange === '7d' ? 7 : 30;
+        const days = timeRange === '3d' ? 3 : timeRange === '7d' ? 7 : 30;
         dataPoints = this.aggregateByDay(items, days);
       }
 

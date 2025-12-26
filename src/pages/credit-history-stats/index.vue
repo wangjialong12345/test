@@ -61,13 +61,6 @@
         </el-tag>
       </h2>
       <div class="stats-cards">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-label">今日累计消费</div>
-          <div class="stat-value today">{{ formatCost(todayCostSum) }}</div>
-          <div class="stat-hint">
-            当日总消费额度
-          </div>
-        </el-card>
         <el-card class="stat-card" shadow="hover" :class="{ 'card-danger': isCurrentKeyDisabled || (currentLimit > 0 && usagePercentage >= 100) }">
           <div class="stat-label">历史累计消费</div>
           <div class="stat-value accumulated">{{ formatCost(totalCostSum) }}</div>
@@ -81,13 +74,6 @@
         <el-card class="stat-card" shadow="hover">
           <div class="stat-label">当前接口记录</div>
           <div class="stat-value total">{{ filteredCount }} 条</div>
-        </el-card>
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-label">今日所有Key总消费</div>
-          <div class="stat-value all-keys">{{ formatCost(todayAllKeysCostSum) }}</div>
-          <div class="stat-hint">
-            全部 Key 当日总额
-          </div>
         </el-card>
       </div>
       <div class="stats-info">

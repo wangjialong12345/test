@@ -8,7 +8,7 @@
           size="small"
           class="time-range-select"
         >
-          <el-option label="今日" value="24h" />
+          <el-option label="最近24小时" value="24h" />
           <el-option label="最近7天" value="7d" />
         </el-select>
         <el-radio-group

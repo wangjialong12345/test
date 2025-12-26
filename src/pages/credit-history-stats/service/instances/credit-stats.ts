@@ -169,14 +169,7 @@ export class CreditStatsInstance {
   }
 
   get totalCostSum(): number {
-    return this.currentApiKeyInfo?.totalCost ?? this.todayCostSum;
-  }
-
-  get todayCostSum(): number {
-    const today = new Date().toISOString().split('T')[0];
-    return this.filteredData
-      .filter((item) => item.createdAt.startsWith(today))
-      .reduce((sum, item) => sum + item.totalCost, 0);
+    return this.currentApiKeyInfo?.totalCost ?? 0;
   }
 
   get totalCount(): number {
@@ -238,23 +231,9 @@ export class CreditStatsInstance {
     }
   }
 
-  /** 获取指定 keyId 的当前总消费（API 返回） */
-  private getCurrentCostForKeyId(keyId: string): number {
-    return this.apiKeyList.find((k) => k.keyId === keyId)?.totalCost ?? 0;
-  }
-
-  /** 获取指定 keyId 的历史累计消费（API 历史 + 今日消费） */
+  /** 获取指定 keyId 的历史累计消费（直接使用 API 返回的 totalCost） */
   private getTotalCostForKeyId(keyId: string): number {
-    const apiTotalCost = this.apiKeyList.find((k) => k.keyId === keyId)?.totalCost ?? 0;
-    return apiTotalCost + this.getTodayCostForKeyId(keyId);
-  }
-
-  /** 获取指定 keyId 的今日消费（从历史记录计算） */
-  private getTodayCostForKeyId(keyId: string): number {
-    const today = new Date().toISOString().split('T')[0];
-    return this._rawData
-      .filter((item) => item.keyId === keyId && item.createdAt.startsWith(today))
-      .reduce((sum, item) => sum + item.totalCost, 0);
+    return this.apiKeyList.find((k) => k.keyId === keyId)?.totalCost ?? 0;
   }
 
   // ========== Key 状态相关 ==========
@@ -290,7 +269,7 @@ export class CreditStatsInstance {
       const costLimit = this.parseCostLimitFromDescription(description);
       if (costLimit === 0) continue; // 无限额
 
-      // 使用历史累计消费（API 历史 + 今日消费）来判断是否超额
+      // 使用 API 返回的累计消费来判断是否超额
       const totalCost = this.getTotalCostForKeyId(keyId);
 
       if (totalCost >= costLimit) {

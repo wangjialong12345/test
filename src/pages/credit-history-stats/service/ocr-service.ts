@@ -1,5 +1,8 @@
 import { createWorker, Worker, PSM } from 'tesseract.js';
 
+/** OCR 初始化状态 */
+export type OCRStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 /**
  * OCR 服务 - 用于识别验证码图片中的数字
  */
@@ -8,6 +11,17 @@ class OCRService {
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
 
+  /** 当前状态 */
+  status: OCRStatus = 'idle';
+
+  /** 状态变化回调 */
+  onStatusChange: ((status: OCRStatus) => void) | null = null;
+
+  private setStatus(status: OCRStatus): void {
+    this.status = status;
+    this.onStatusChange?.(status);
+  }
+
   /**
    * 初始化 Tesseract Worker
    */
@@ -15,21 +29,29 @@ class OCRService {
     if (this.isInitialized) return;
     if (this.initPromise) return this.initPromise;
 
+    this.setStatus('loading');
+
     this.initPromise = (async () => {
-      this.worker = await createWorker({
-        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/worker.min.js',
-        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4/tesseract-core.wasm.js',
-      });
+      try {
+        this.worker = await createWorker({
+          langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+          workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/worker.min.js',
+          corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4/tesseract-core.wasm.js',
+        });
 
-      await this.worker.loadLanguage('eng');
-      await this.worker.initialize('eng');
-      await this.worker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: PSM.SINGLE_LINE,
-      });
+        await this.worker.loadLanguage('eng');
+        await this.worker.initialize('eng');
+        await this.worker.setParameters({
+          tessedit_char_whitelist: '0123456789',
+          tessedit_pageseg_mode: PSM.SINGLE_LINE,
+        });
 
-      this.isInitialized = true;
+        this.isInitialized = true;
+        this.setStatus('ready');
+      } catch (error) {
+        this.setStatus('error');
+        throw error;
+      }
     })();
 
     return this.initPromise;

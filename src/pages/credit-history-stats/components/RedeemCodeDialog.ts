@@ -1,6 +1,7 @@
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { RedeemBatchInstance } from '../service/instances/redeem-batch';
 import { RedeemResult } from '../service/types';
+import { ocrService, OCRStatus } from '../service/ocr-service';
 
 @Component({
   name: 'RedeemCodeDialog',
@@ -11,6 +12,9 @@ export default class RedeemCodeDialog extends Vue {
 
   private instance = new RedeemBatchInstance();
   inputText = '';
+
+  /** OCR 状态 */
+  ocrStatus: OCRStatus = 'idle';
 
   get dialogVisible(): boolean {
     return this.visible;
@@ -26,6 +30,21 @@ export default class RedeemCodeDialog extends Vue {
 
   get isProcessing(): boolean {
     return this.instance.isProcessing;
+  }
+
+  /** OCR 是否正在加载 */
+  get isOCRLoading(): boolean {
+    return this.ocrStatus === 'loading';
+  }
+
+  /** OCR 是否加载失败 */
+  get isOCRError(): boolean {
+    return this.ocrStatus === 'error';
+  }
+
+  /** 是否可以开始（OCR 就绪且有兑换码） */
+  get canStart(): boolean {
+    return this.ocrStatus === 'ready' && this.codeCount > 0 && !this.isProcessing;
   }
 
   get progress(): number {
@@ -64,9 +83,32 @@ export default class RedeemCodeDialog extends Vue {
 
   @Watch('visible')
   onVisibleChange(val: boolean): void {
-    if (!val) {
+    if (val) {
+      // 对话框打开时预加载 OCR
+      this.preloadOCR();
+    } else {
       if (!this.isProcessing) {
         this.reset();
+      }
+    }
+  }
+
+  /** 预加载 OCR 服务 */
+  private async preloadOCR(): Promise<void> {
+    this.ocrStatus = ocrService.status;
+
+    // 监听状态变化
+    ocrService.onStatusChange = (status) => {
+      this.ocrStatus = status;
+      this.$forceUpdate();
+    };
+
+    // 如果还未初始化，开始初始化
+    if (this.ocrStatus === 'idle' || this.ocrStatus === 'error') {
+      try {
+        await ocrService.initialize();
+      } catch (error) {
+        console.error('[RedeemCodeDialog] OCR 初始化失败:', error);
       }
     }
   }

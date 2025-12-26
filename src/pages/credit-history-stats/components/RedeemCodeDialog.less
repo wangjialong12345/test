@@ -182,3 +182,57 @@
     }
   }
 }
+
+// 移动端响应式样式
+@media (max-width: 768px) {
+  .progress-section {
+    padding: 12px;
+
+    .progress-stats {
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-size: 12px;
+    }
+  }
+
+  .results-section {
+    .results-list {
+      max-height: 150px;
+
+      .result-item {
+        padding: 8px 10px;
+        font-size: 12px;
+        flex-wrap: wrap;
+
+        .result-icon {
+          width: 16px;
+          margin-right: 6px;
+
+          i {
+            font-size: 12px;
+          }
+        }
+
+        .result-code {
+          flex: 0 0 auto;
+          max-width: 120px;
+          font-size: 11px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .result-message {
+          flex: 1 1 100%;
+          margin-top: 4px;
+          margin-left: 22px;
+          font-size: 11px;
+        }
+      }
+    }
+  }
+}
+
+// 对话框居中
+:global(.redeem-dialog) {
+  margin: 0 auto !important;
+}
