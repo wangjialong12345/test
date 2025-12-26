@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Card,
+  Dialog,
   Option,
   Progress,
   Select,
@@ -16,6 +17,7 @@ import {
 } from './service/instances/credit-stats';
 import { ApiKeyInfo, CreditHistoryItem } from './service/types';
 import CostChart from './components/CostChart.vue';
+import RedeemCodeDialog from './components/RedeemCodeDialog.vue';
 
 @Component({
   name: 'CreditHistoryStats',
@@ -23,6 +25,7 @@ import CostChart from './components/CostChart.vue';
     ElAlert: Alert,
     ElButton: Button,
     ElCard: Card,
+    ElDialog: Dialog,
     ElOption: Option,
     ElProgress: Progress,
     ElSelect: Select,
@@ -30,10 +33,14 @@ import CostChart from './components/CostChart.vue';
     ElTableColumn: TableColumn,
     ElTag: Tag,
     CostChart,
+    RedeemCodeDialog,
   },
 })
 export default class extends Vue {
   private instance = new CreditStatsInstance();
+
+  /** 兑换码弹框显示状态 */
+  redeemDialogVisible = false;
 
   /** 当前选中的 keyId */
   get selectedKeyId(): string {
@@ -152,6 +159,16 @@ export default class extends Vue {
 
   /** 手动刷新 */
   refresh(): void {
+    this.instance.refresh();
+  }
+
+  /** 打开兑换码弹框 */
+  openRedeemDialog(): void {
+    this.redeemDialogVisible = true;
+  }
+
+  /** 兑换码激活完成 */
+  onRedeemComplete(): void {
     this.instance.refresh();
   }
 

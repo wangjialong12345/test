@@ -1,6 +1,6 @@
 /* eslint-disable lines-between-class-members */
 import axios from 'axios';
-import { QueryApiKeys, QueryCreditHistory } from './types';
+import { QueryApiKeys, QueryCreditHistory, CaptchaData, RedeemRequest } from './types';
 
 /** 接口响应结构（该接口响应格式与项目标准不同） */
 interface CreditHistoryResponse<T> {
@@ -19,9 +19,22 @@ const instance = axios.create({
 });
 
 /** 认证 Token（从 88code.org 获取） */
-const AUTH_TOKEN = '337b5d19d92144e68d9c38ce75dcdf3c';
+const AUTH_TOKEN = '418db525827844f3a4405b271eaa81d0';
 
 instance.interceptors.request.use((config) => {
+  config.headers.Authorization = `Bearer ${AUTH_TOKEN}`;
+  return config;
+});
+
+/** 兑换码接口基础地址 */
+const REDEEM_BASE_URL = 'https://www.88code.ai';
+
+const redeemInstance = axios.create({
+  baseURL: REDEEM_BASE_URL,
+  timeout: 30000,
+});
+
+redeemInstance.interceptors.request.use((config) => {
   config.headers.Authorization = `Bearer ${AUTH_TOKEN}`;
   return config;
 });
@@ -34,6 +47,10 @@ export default class Model {
     '/admin-api/cc-admin/api-key/toggle-status';
 
   static readonly URL_OF_QUERY_API_KEYS = '/admin-api/cc-admin/api-key/query';
+
+  static readonly URL_OF_GET_CAPTCHA = '/admin-api/login/getCaptcha';
+
+  static readonly URL_OF_REDEEM_CODE = '/admin-api/cc-admin/system/redeem-code/redeem';
 
   async queryCreditHistory(
     options: QueryCreditHistory.QueryOptions
@@ -63,6 +80,25 @@ export default class Model {
     const { data } = await instance.post<
       CreditHistoryResponse<QueryApiKeys.QueryResult>
     >(Model.URL_OF_QUERY_API_KEYS, options);
+    return data;
+  }
+
+  /** 获取验证码 */
+  async getCaptcha(): Promise<CreditHistoryResponse<CaptchaData>> {
+    const { data } = await redeemInstance.get<CreditHistoryResponse<CaptchaData>>(
+      Model.URL_OF_GET_CAPTCHA
+    );
+    return data;
+  }
+
+  /** 兑换码激活 */
+  async redeemCode(
+    request: RedeemRequest
+  ): Promise<CreditHistoryResponse<unknown>> {
+    const { data } = await redeemInstance.post<CreditHistoryResponse<unknown>>(
+      Model.URL_OF_REDEEM_CODE,
+      request
+    );
     return data;
   }
 }

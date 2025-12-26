@@ -142,3 +142,40 @@ export namespace QueryCreditHistory {
     list: CreditHistoryItem[];
   }
 }
+
+/** 验证码数据 */
+export interface CaptchaData {
+  /** Base64 编码的验证码图片 */
+  captchaBase64Image: string;
+  /** 验证码唯一标识 */
+  captchaUuid: string;
+  /** 过期时间（秒） */
+  expireSeconds: number;
+}
+
+/** 兑换码激活请求参数 */
+export interface RedeemRequest {
+  /** 验证码（4位数字） */
+  captchaCode: string;
+  /** 验证码唯一标识 */
+  captchaUuid: string;
+  /** 兑换码 */
+  code: string;
+}
+
+/** 兑换码处理状态 */
+export type RedeemStatus = 'pending' | 'success' | 'used';
+
+/** 兑换码处理结果 */
+export interface RedeemResult {
+  /** 兑换码 */
+  code: string;
+  /** 处理状态 */
+  status: RedeemStatus;
+  /** 结果消息 */
+  message: string;
+  /** 处理时间 */
+  timestamp: string;
+  /** 重试次数 */
+  retryCount: number;
+}

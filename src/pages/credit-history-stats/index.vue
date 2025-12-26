@@ -101,6 +101,14 @@
           每分钟自动刷新
         </el-tag>
         <el-button
+          type="success"
+          icon="el-icon-tickets"
+          size="small"
+          @click="openRedeemDialog"
+        >
+          激活兑换码
+        </el-button>
+        <el-button
           type="primary"
           icon="el-icon-refresh"
           size="small"
@@ -199,6 +207,12 @@
         </el-table-column>
       </el-table>
     </div>
+
+    <!-- 兑换码弹框 -->
+    <redeem-code-dialog
+      :visible.sync="redeemDialogVisible"
+      @complete="onRedeemComplete"
+    />
   </div>
 </template>
 <script lang="ts" src="./index"></script>
