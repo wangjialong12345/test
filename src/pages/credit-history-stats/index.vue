@@ -86,6 +86,7 @@
         <el-tag v-else type="success" size="small" class="polling-tag">
           每分钟自动刷新
         </el-tag>
+        <!-- 暂时隐藏批量注册兑换码功能
         <el-button
           type="success"
           icon="el-icon-tickets"
@@ -94,6 +95,7 @@
         >
           激活兑换码
         </el-button>
+        -->
         <el-button
           type="primary"
           icon="el-icon-refresh"
@@ -194,11 +196,12 @@
       </el-table>
     </div>
 
-    <!-- 兑换码弹框 -->
+    <!-- 暂时隐藏批量注册兑换码功能
     <redeem-code-dialog
       :visible.sync="redeemDialogVisible"
       @complete="onRedeemComplete"
     />
+    -->
   </div>
 </template>
 <script lang="ts" src="./index"></script>
