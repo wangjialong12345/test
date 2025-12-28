@@ -49,7 +49,7 @@ export default class extends Vue {
   timeRange: TimeRange = '24h';
 
   /** 显示模式 */
-  displayMode: DisplayMode = 'summary';
+  displayMode: DisplayMode = 'separate';
 
   /** ECharts 实例 */
   private chartInstance: echarts.ECharts | null = null;

@@ -342,6 +342,23 @@ export class CreditStatsInstance {
     return (this.totalCostSum / this.currentLimit) * 100;
   }
 
+  /** 当前 Key 今日消费 */
+  get currentKeyTodayCost(): number {
+    if (!this.selectedKeyId) return 0;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    return this._rawData
+      .filter((item) => item.keyId === this.selectedKeyId && item.createdAt.startsWith(today))
+      .reduce((sum, item) => sum + item.totalCost, 0);
+  }
+
+  /** 所有 Key 今日消费总和 */
+  get allKeysTodayCost(): number {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    return this._rawData
+      .filter((item) => item.createdAt.startsWith(today))
+      .reduce((sum, item) => sum + item.totalCost, 0);
+  }
+
   destroy(): void {
     this.stopPolling();
   }

@@ -16,8 +16,8 @@
           size="small"
           class="display-mode-group"
         >
-          <el-radio-button label="summary">汇总</el-radio-button>
           <el-radio-button label="separate">分别</el-radio-button>
+          <el-radio-button label="summary">汇总</el-radio-button>
         </el-radio-group>
       </div>
     </div>

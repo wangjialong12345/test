@@ -133,6 +133,16 @@ export default class extends Vue {
     return this.instance.usagePercentage;
   }
 
+  /** 当前 Key 今日消费 */
+  get currentKeyTodayCost(): number {
+    return this.instance.currentKeyTodayCost;
+  }
+
+  /** 所有 Key 今日消费总和 */
+  get allKeysTodayCost(): number {
+    return this.instance.allKeysTodayCost;
+  }
+
   /** 格式化费用 */
   formatCost(cost: number): string {
     return cost.toFixed(6);
