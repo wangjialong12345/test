@@ -9,7 +9,7 @@
           class="time-range-select"
         >
           <el-option label="最近24小时" value="24h" />
-          <el-option label="最近7天" value="7d" />
+          <el-option label="最近3天" value="3d" />
         </el-select>
         <el-radio-group
           v-model="displayMode"
