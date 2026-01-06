@@ -11,7 +11,7 @@ interface CreditHistoryResponse<T> {
 }
 
 /** 外部接口基础地址 */
-const EXTERNAL_BASE_URL = 'https://www.88code.org';
+const EXTERNAL_BASE_URL = 'https://www.88code.ai';
 
 const instance = axios.create({
   baseURL: EXTERNAL_BASE_URL,
@@ -41,7 +41,7 @@ redeemInstance.interceptors.request.use((config) => {
 
 export default class Model {
   static readonly URL_OF_QUERY_CREDIT_HISTORY =
-    '/admin-api/cc-admin/system/subscription/my/credit-history';
+    '/admin-api/cc-admin/system/subscription/my/credit-history/range';
 
   static readonly URL_OF_TOGGLE_KEY_STATUS =
     '/admin-api/cc-admin/api-key/toggle-status';

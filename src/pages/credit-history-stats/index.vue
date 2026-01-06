@@ -146,6 +146,32 @@
           align="center"
         />
         <el-table-column
+          label="AI账户"
+          prop="accountId"
+          min-width="100"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-tooltip
+              v-if="row.accountId && accountDetails[row.accountId]"
+              placement="top"
+              effect="dark"
+            >
+              <template #content>
+                <div style="line-height: 1.6">
+                  <div>ID: {{ row.accountId }}</div>
+                  <div>分类: {{ accountDetails[row.accountId].category }}</div>
+                  <div>邮箱: {{ accountDetails[row.accountId].email }}</div>
+                </div>
+              </template>
+              <span style="cursor: pointer; color: #67c23a">
+                {{ getAccountDisplayName(row.accountId) }}
+              </span>
+            </el-tooltip>
+            <span v-else>{{ getAccountDisplayName(row.accountId) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
           label="模型"
           prop="requestModel"
           min-width="200"

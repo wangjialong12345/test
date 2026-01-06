@@ -1,5 +1,5 @@
 import { model } from '../model';
-import { ApiKeyInfo, CreditHistoryItem } from '../types';
+import { AccountDetail, ApiKeyInfo, CreditHistoryItem } from '../types';
 
 /** 已禁用的 Key 存储 key */
 const STORAGE_KEY_DISABLED = 'credit-stats-disabled-keys';
@@ -24,6 +24,9 @@ export class CreditStatsInstance {
   disabledKeys: Record<string, DisabledKeyRecord> = {};
   apiKeyList: ApiKeyInfo[] = [];
   lastUpdatedAt: string | null = null;
+
+  /** AI账户详情映射 */
+  accountDetails: Record<string, AccountDetail> = {};
 
   /** 原始数据 */
   private _rawData: CreditHistoryItem[] = [];
@@ -94,8 +97,11 @@ export class CreditStatsInstance {
     try {
       const response = await model.queryCreditHistory({ pageNum: 1, pageSize: 10000 });
       if (response.code === 0 && response.data) {
-        // 获取原始数据
-        let rawList = response.data.list || [];
+        // 保存 AI 账户详情
+        this.accountDetails = response.data.accountDetails || {};
+
+        // 获取原始数据（新接口在 history.list 中）
+        let rawList = response.data.history?.list || [];
 
         // 为每条记录补充 keyId（如果 API 返回的数据没有 keyId）
         rawList = rawList.map((item) => {
@@ -112,7 +118,7 @@ export class CreditStatsInstance {
         });
 
         this._rawData = rawList;
-        this._totalCount = response.data.total || 0;
+        this._totalCount = response.data.history?.total || 0;
         this.lastUpdatedAt = new Date().toLocaleString('zh-CN');
 
         // 检查超额

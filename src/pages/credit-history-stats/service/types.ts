@@ -1,3 +1,15 @@
+/** AI账户详情 */
+export interface AccountDetail {
+  /** 分类（如 CLAUDE） */
+  category: string;
+  /** 脱敏邮箱 */
+  email: string;
+  /** 是否为控制台账户 */
+  isConsole: boolean;
+  /** 短ID */
+  shortId: string;
+}
+
 /** 积分历史记录实体 */
 export interface CreditHistoryItem {
   /** 记录ID */
@@ -6,6 +18,8 @@ export interface CreditHistoryItem {
   employeeId: number;
   /** 订阅ID */
   subscriptionId: number;
+  /** AI账户ID */
+  accountId?: string;
   /** 操作类型 */
   operationType: string;
   /** 操作类型描述 */
@@ -126,20 +140,36 @@ export namespace QueryCreditHistory {
     pageNum: number;
     /** 每页大小 */
     pageSize: number;
+    /** 开始日期 (YYYY-MM-DD) */
+    startDate?: string;
+    /** 结束日期 (YYYY-MM-DD) */
+    endDate?: string;
   }
 
-  /** 查询结果 */
-  export interface QueryResult {
+  /** 历史数据分页结构 */
+  export interface HistoryData {
+    /** 是否为空 */
+    emptyFlag: boolean;
+    /** 扩展数据 */
+    extendData: unknown;
+    /** 列表数据 */
+    list: CreditHistoryItem[];
     /** 页码 */
     pageNum: number;
     /** 每页大小 */
     pageSize: number;
-    /** 总数 */
-    total: number;
     /** 总页数 */
     pages: number;
-    /** 列表数据 */
-    list: CreditHistoryItem[];
+    /** 总数 */
+    total: number;
+  }
+
+  /** 查询结果 */
+  export interface QueryResult {
+    /** AI账户详情映射（key 为 accountId） */
+    accountDetails: Record<string, AccountDetail>;
+    /** 历史数据 */
+    history: HistoryData;
   }
 }
 

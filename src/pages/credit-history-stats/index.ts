@@ -9,13 +9,14 @@ import {
   Table,
   TableColumn,
   Tag,
+  Tooltip,
 } from 'element-ui';
 import { Component, Vue } from 'vue-property-decorator';
 import {
   CreditStatsInstance,
   DisabledKeyRecord,
 } from './service/instances/credit-stats';
-import { ApiKeyInfo, CreditHistoryItem } from './service/types';
+import { AccountDetail, ApiKeyInfo, CreditHistoryItem } from './service/types';
 import CostChart from './components/CostChart.vue';
 // 暂时隐藏批量注册兑换码功能
 // import RedeemCodeDialog from './components/RedeemCodeDialog.vue';
@@ -33,6 +34,7 @@ import CostChart from './components/CostChart.vue';
     ElTable: Table,
     ElTableColumn: TableColumn,
     ElTag: Tag,
+    ElTooltip: Tooltip,
     CostChart,
     // RedeemCodeDialog, // 暂时隐藏批量注册兑换码功能
   },
@@ -141,6 +143,19 @@ export default class extends Vue {
   /** 所有 Key 今日消费总和 */
   get allKeysTodayCost(): number {
     return this.instance.allKeysTodayCost;
+  }
+
+  /** AI账户详情映射 */
+  get accountDetails(): Record<string, AccountDetail> {
+    return this.instance.accountDetails;
+  }
+
+  /** 获取 AI 账户显示名称 */
+  getAccountDisplayName(accountId: string | undefined): string {
+    if (!accountId) return '-';
+    const account = this.accountDetails[accountId];
+    if (!account) return accountId.substring(0, 8);
+    return account.shortId || accountId.substring(0, 8);
   }
 
   /** 格式化费用 */
