@@ -175,7 +175,7 @@ export class CreditStatsInstance {
   }
 
   get totalCostSum(): number {
-    return this.currentApiKeyInfo?.totalCost ?? 0;
+    return (this.currentApiKeyInfo?.totalCost ?? 0) * 2;
   }
 
   get totalCount(): number {
@@ -354,7 +354,7 @@ export class CreditStatsInstance {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     return this._rawData
       .filter((item) => item.keyId === this.selectedKeyId && item.createdAt.startsWith(today))
-      .reduce((sum, item) => sum + item.totalCost, 0);
+      .reduce((sum, item) => sum + item.totalCost, 0) * 2;
   }
 
   /** 所有 Key 今日消费总和 */
@@ -362,7 +362,7 @@ export class CreditStatsInstance {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     return this._rawData
       .filter((item) => item.createdAt.startsWith(today))
-      .reduce((sum, item) => sum + item.totalCost, 0);
+      .reduce((sum, item) => sum + item.totalCost, 0) * 2;
   }
 
   destroy(): void {

@@ -224,7 +224,7 @@
           align="center"
         >
           <template #default="{ row }">
-            {{ formatCost(row.totalCost) }}
+            {{ formatCost(row.totalCost * 2) }}
           </template>
         </el-table-column>
       </el-table>

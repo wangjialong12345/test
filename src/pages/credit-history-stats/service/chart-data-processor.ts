@@ -164,7 +164,7 @@ export class ChartDataProcessor {
 
     todayData.forEach(item => {
       const hour = new Date(item.createdAt).getHours();
-      hourMap.set(hour, (hourMap.get(hour) || 0) + item.totalCost);
+      hourMap.set(hour, (hourMap.get(hour) || 0) + item.totalCost * 2);
     });
 
     // 转换为数据点数组
@@ -212,7 +212,7 @@ export class ChartDataProcessor {
 
       // 只累加在日期范围内的数据
       if (dateStr && dayMap.has(dateStr)) {
-        dayMap.set(dateStr, (dayMap.get(dateStr) || 0) + item.totalCost);
+        dayMap.set(dateStr, (dayMap.get(dateStr) || 0) + item.totalCost * 2);
       }
     });
 
