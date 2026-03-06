@@ -10,15 +10,15 @@ interface CreditHistoryResponse<T> {
   data: T;
 }
 
-/** 外部接口基础地址 */
-const EXTERNAL_BASE_URL = 'https://www.88code.ai';
+/** 同源代理基础地址（由 Netlify Function 转发到 88code） */
+const PROXY_BASE_URL = '/api';
 
 const instance = axios.create({
-  baseURL: EXTERNAL_BASE_URL,
+  baseURL: PROXY_BASE_URL,
   timeout: 30000,
 });
 
-/** 认证 Token（从 88code.org 获取） */
+/** 认证 Token */
 const AUTH_TOKEN = '71a970088ae445b9a9d5f7b3c8efee29';
 
 instance.interceptors.request.use((config) => {
@@ -26,11 +26,8 @@ instance.interceptors.request.use((config) => {
   return config;
 });
 
-/** 兑换码接口基础地址 */
-const REDEEM_BASE_URL = 'https://www.88code.ai';
-
 const redeemInstance = axios.create({
-  baseURL: REDEEM_BASE_URL,
+  baseURL: PROXY_BASE_URL,
   timeout: 30000,
 });
 
