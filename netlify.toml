@@ -5,12 +5,9 @@
 [build.environment]
   NODE_VERSION = "18"
 
-[functions]
-  directory = "netlify/functions"
-
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/88code-proxy/:splat"
+  to = "https://www.88code.ai/:splat"
   status = 200
   force = true
 

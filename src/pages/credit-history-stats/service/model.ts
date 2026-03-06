@@ -10,7 +10,7 @@ interface CreditHistoryResponse<T> {
   data: T;
 }
 
-/** 同源代理基础地址（由 Netlify Function 转发到 88code） */
+/** 同源代理基础地址（由 Netlify Redirects 转发到 88code） */
 const PROXY_BASE_URL = '/api';
 
 const instance = axios.create({
