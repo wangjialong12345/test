@@ -1,2 +1,2 @@
-/api/* /.netlify/functions/88code-proxy/:splat 200
+/api/* https://www.88code.ai/:splat 200
 /* /index.html 200
