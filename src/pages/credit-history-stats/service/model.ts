@@ -19,7 +19,7 @@ const instance = axios.create({
 });
 
 /** 认证 Token */
-const AUTH_TOKEN = '71a970088ae445b9a9d5f7b3c8efee29';
+const AUTH_TOKEN = '1938b047b5964ea89b181aaa72d21572';
 
 instance.interceptors.request.use((config) => {
   config.headers.Authorization = `Bearer ${AUTH_TOKEN}`;
